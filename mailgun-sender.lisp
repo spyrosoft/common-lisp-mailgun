@@ -10,6 +10,7 @@
 (defvar *mailgun-credentials* (make-hash-table :test 'eq))
 
 (defun set-credentials (&key api-key api-public-key from-email-address post-url (validate-email-url "https://api.mailgun.net/v3/address/validate"))
+  "Set your Mailgun API credentials."
   (when api-key
     (setf (gethash 'api-key *mailgun-credentials*) api-key))
   (when api-public-key
@@ -18,11 +19,11 @@
     (setf (gethash 'from-email-address *mailgun-credentials*) from-email-address))
   (when post-url
     (setf (gethash 'post-url *mailgun-credentials*) post-url))
-  (setf (gethash 'validate-email-url *mailgun-credentials*) validate-email-url))
-
-
+  (setf (gethash 'validate-email-url *mailgun-credentials*) validate-email-url)
+  nil)
 
 (defun validate-email-address (email-address)
+  "Use Mailgun to validate a recipient email address."
   (let ((mailgun-response
          (map 'string #'code-char
               (drakma:http-request
@@ -37,18 +38,21 @@
     ))
 
 (defun send-message (recipient-email-address email-subject email-message-body &key cc bcc)
+  "Send an email after setting your Mailgun credentials."
+  (unless (gethash 'api-key *mailgun-credentials*)
+    (error "You need to set your credentials before send-message can be called."))
   (let ((mail-parameters '()))
-    (setq mail-parameters (nconc mail-parameters (list (cons "from" (gethash 'from-email-address *mailgun-credentials*)))))
-    (setq mail-parameters (nconc mail-parameters (list (cons "to" recipient-email-address))))
+    (push (cons "from" (gethash 'from-email-address *mailgun-credentials*)) mail-parameters)
+    (push (cons "to" recipient-email-address) mail-parameters)
     (when cc
-      (setq mail-parameters (nconc mail-parameters (list (cons "cc" cc)))))
+      (push (cons "cc" cc) mail-parameters))
     (when bcc
-      (setq mail-parameters (nconc mail-parameters (list (cons "bcc" bcc)))))
-    (setq mail-parameters (nconc mail-parameters (list (cons "subject" email-subject))))
-    (setq mail-parameters (nconc mail-parameters (list (cons "text" email-message-body))))
+      (push (cons "bcc" bcc) mail-parameters))
+    (push (cons "subject" email-subject) mail-parameters)
+    (push (cons "text" email-message-body) mail-parameters)
     (drakma:http-request
-     (gethash 'validate-email-url *mailgun-credentials*)
+     (gethash 'post-url *mailgun-credentials*)
      :method :post
-     :basic-authorization (list "api" (gethash 'api-key *mailgun-credentials*)
-                                :parameters mail-parameters))
+     :basic-authorization (list "api" (gethash 'api-key *mailgun-credentials*))
+     :parameters mail-parameters)
     ))
