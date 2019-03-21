@@ -6,5 +6,6 @@
   :description "Wrapper library for Mailgun"
   :long-description "A wrapper library for the Mailgun HTTP API"
   :serial t
-  :components ((:file "mailgun")))
+  :components ((:file "mailgun"))
+  :depends-on (:drakma :jsown))
 
