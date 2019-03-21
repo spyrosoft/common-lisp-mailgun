@@ -37,7 +37,7 @@
       (error nil "The JSON key 'is_valid' does not appear in the request response."))
     ))
 
-(defun send-message (recipient-email-address email-subject email-message-body &key cc bcc)
+(defun send-message (recipient-email-address email-subject email-message-body &key attachments cc bcc)
   "Send an email after setting your Mailgun credentials."
   (unless (gethash 'api-key *mailgun-credentials*)
     (error "You need to set your credentials before send-message can be called."))
@@ -50,9 +50,18 @@
       (push (cons "bcc" bcc) mail-parameters))
     (push (cons "subject" email-subject) mail-parameters)
     (push (cons "text" email-message-body) mail-parameters)
+    (when attachments
+      ;; ATTACHMENT can simply be a pathname or can have the form
+      ;; (pathname :content-type <content type> :filename <file name>)
+      (map nil #'(lambda (attachment)
+		   (setf mail-parameters
+    			 (push (cons "attachment" attachment-with-plist)
+			       mail-parameters)))
+	   attachments))
     (drakma:http-request
      (gethash 'post-url *mailgun-credentials*)
      :method :post
      :basic-authorization (list "api" (gethash 'api-key *mailgun-credentials*))
+     :form-data (if attachments t)
      :parameters mail-parameters)
     ))
