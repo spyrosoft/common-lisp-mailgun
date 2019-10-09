@@ -55,7 +55,7 @@
       ;; (pathname :content-type <content type> :filename <file name>)
       (map nil #'(lambda (attachment)
 		   (setf mail-parameters
-    			 (push (cons "attachment" attachment-with-plist)
+    			 (push (cons "attachment" attachment)
 			       mail-parameters)))
 	   attachments))
     (drakma:http-request
